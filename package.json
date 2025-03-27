@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
+    "date-fns": "^4.1.0",
     "face-api.js": "^0.22.2",
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "moment-timezone": "^0.5.48",
     "mysql2": "^3.14.0",
     "next": "15.2.3",
     "react": "^19.0.0",

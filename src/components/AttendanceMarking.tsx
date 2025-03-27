@@ -10,6 +10,7 @@ const AttendanceMarking: React.FC = () => {
   const [isCheckingIn, setIsCheckingIn] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
+  const [attendanceStatus, setAttendanceStatus] = useState<{ checkedIn: boolean; checkedOut: boolean }>({ checkedIn: false, checkedOut: false });
   
   const handleIdentify = async (id: number) => {
     setEmployeeId(id);
@@ -21,6 +22,23 @@ const AttendanceMarking: React.FC = () => {
       
       if (response.ok && data.employee) {
         setEmployeeName(data.employee.name);
+        
+        // Fetch today's attendance status
+        const currentDate = new Date().toISOString().split('T')[0];
+        const attendanceResponse = await fetch(`/api/attendance?employeeId=${id}&date=${currentDate}`);
+        const attendanceData = await attendanceResponse.json();
+        
+        if (attendanceResponse.ok && attendanceData.attendanceRecords.length > 0) {
+          const todayRecord = attendanceData.attendanceRecords[0];
+          setAttendanceStatus({
+            checkedIn: !!todayRecord.check_in,
+            checkedOut: !!todayRecord.check_out
+          });
+          setIsCheckingIn(!todayRecord.check_in || (todayRecord.check_in && todayRecord.check_out));
+        } else {
+          setAttendanceStatus({ checkedIn: false, checkedOut: false });
+          setIsCheckingIn(true);
+        }
       } else {
         toast.error('Failed to fetch employee details');
       }
@@ -39,6 +57,24 @@ const AttendanceMarking: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // Validate attendance status
+      if (isCheckingIn && attendanceStatus.checkedIn && !attendanceStatus.checkedOut) {
+        toast.error('You have already checked in today. Please check out instead.');
+        setIsCheckingIn(false);
+        return;
+      }
+      
+      if (!isCheckingIn && !attendanceStatus.checkedIn) {
+        toast.error('You must check in first before checking out.');
+        setIsCheckingIn(true);
+        return;
+      }
+      
+      if (!isCheckingIn && attendanceStatus.checkedOut) {
+        toast.error('You have already checked out today.');
+        return;
+      }
+      
       const action = isCheckingIn ? 'check-in' : 'check-out';
       
       const response = await fetch('/api/attendance', {
@@ -49,6 +85,7 @@ const AttendanceMarking: React.FC = () => {
         body: JSON.stringify({
           employeeId,
           action,
+          timestamp: new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }),
         }),
       });
       
@@ -57,6 +94,10 @@ const AttendanceMarking: React.FC = () => {
       if (response.ok) {
         toast.success(`${action === 'check-in' ? 'Check-in' : 'Check-out'} successful for ${employeeName}`);
         setAttendanceMarked(true);
+        setAttendanceStatus(prev => ({
+          checkedIn: action === 'check-in' ? true : prev.checkedIn,
+          checkedOut: action === 'check-out' ? true : prev.checkedOut
+        }));
       } else {
         toast.error(data.error || `Failed to ${action}`);
       }
@@ -72,6 +113,7 @@ const AttendanceMarking: React.FC = () => {
     setEmployeeId(null);
     setEmployeeName('');
     setAttendanceMarked(false);
+    setAttendanceStatus({ checkedIn: false, checkedOut: false });
   };
   
   return (

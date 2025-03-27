@@ -5,6 +5,9 @@ import { query } from '@/lib/db';
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const id = params.id;
+    if (!id) {
+      return NextResponse.json({ error: 'Employee ID is required' }, { status: 400 });
+    }
     const employees = await query('SELECT id, name, email, department, created_at FROM employees WHERE id = ?', [id]);
     
     if ((employees as any[]).length === 0) {
@@ -81,10 +84,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
     
-    // Delete employee
+    // First delete all attendance records for this employee
+    await query('DELETE FROM attendance WHERE employee_id = ?', [id]);
+    
+    // Then delete the employee
     await query('DELETE FROM employees WHERE id = ?', [id]);
     
-    return NextResponse.json({ message: 'Employee deleted successfully' }, { status: 200 });
+    return NextResponse.json({ message: 'Employee and related records deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error deleting employee:', error);
     return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 });

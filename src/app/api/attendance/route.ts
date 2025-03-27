@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import moment from 'moment-timezone';
 
 // GET /api/attendance - Get all attendance records
 export async function GET(request: NextRequest) {
@@ -49,10 +50,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { employeeId, action, timestamp } = await request.json();
+    const parsedTimestamp = moment.tz(timestamp, 'Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
+    console.log('Request body:', parsedTimestamp);
     
     // Validate required fields
-    if (!employeeId || !action) {
-      return NextResponse.json({ error: 'Employee ID and action are required' }, { status: 400 });
+    if (!employeeId || !action || !timestamp) {
+      return NextResponse.json({ error: 'Employee ID, timestamp and action are required' }, { status: 400 });
     }
     
     // Check if employee exists
@@ -63,7 +66,8 @@ export async function POST(request: NextRequest) {
     
     // Get current date in YYYY-MM-DD format
     const currentDate = new Date().toISOString().split('T')[0];
-    const currentTime = timestamp || new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const currentTime = parsedTimestamp;
+    console.log("currentTime", currentTime);
     
     if (action === 'check-in') {
       // Check if already checked in today

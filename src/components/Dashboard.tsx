@@ -5,10 +5,16 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import EmployeeRegistration from './EmployeeRegistration';
 import AttendanceMarking from './AttendanceMarking';
+import EmployeeList from './EmployeeList';
+import Reports from './Reports';
 
-type TabType = 'attendance' | 'register';
+type TabType = 'attendance' | 'register' | 'employees' | 'reports';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onLogout: () => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState<TabType>('attendance');
   
   return (
@@ -37,20 +43,39 @@ const Dashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('register')}
-              className={`px-5 py-2.5 text-sm font-medium rounded-r-lg ${activeTab === 'register' 
+              className={`px-5 py-2.5 text-sm font-medium ${activeTab === 'register' 
                 ? 'bg-blue-600 text-white' 
                 : 'bg-white text-gray-700 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600'}`}
             >
               Register Employee
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('employees')}
+              className={`px-5 py-2.5 text-sm font-medium ${activeTab === 'employees' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white text-gray-700 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600'}`}
+            >
+              Employees
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('reports')}
+              className={`px-5 py-2.5 text-sm font-medium rounded-r-lg ${activeTab === 'reports' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-white text-gray-700 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600'}`}
+            >
+              Reports
+            </button>
           </div>
         </div>
         
-        {activeTab === 'attendance' ? (
-          <AttendanceMarking />
-        ) : (
+        {activeTab === 'attendance' && <AttendanceMarking />}
+        {activeTab === 'register' && (
           <EmployeeRegistration onSuccess={() => setActiveTab('attendance')} />
         )}
+        {activeTab === 'employees' && <EmployeeList onAddNewClick={() => setActiveTab('register')} />}
+        {activeTab === 'reports' && <Reports />}
       </div>
       
       <ToastContainer

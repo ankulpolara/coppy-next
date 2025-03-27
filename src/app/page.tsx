@@ -1,10 +1,17 @@
-import dynamic from 'next/dynamic';
+'use client';
 
-// Use dynamic import with no SSR for components that use browser APIs
-const Dashboard = dynamic(() => import('@/components/Dashboard'), {
-  ssr: false,
-});
+import DashboardClient from '@/components/DashboardClient';
+import React from 'react';
+import DatabaseStatus from '@/components/DatabaseStatus';
 
-export default function Home() {
-  return <Dashboard />;
-}
+const HomePage = () => {
+  return (
+    <div>
+      <h1>Welcome to the Attendance System</h1>
+      <DatabaseStatus />
+      <DashboardClient />
+    </div>
+  );
+};
+
+export default HomePage;

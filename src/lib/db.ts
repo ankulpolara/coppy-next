@@ -24,6 +24,8 @@ export async function query(sql: string, params: any[] = []) {
 
 // Initialize database tables if they don't exist
 export async function initDatabase() {
+  console.log('Initializing database   CALLING  ........');
+  
   try {
     // Create employees table
     await query(`
@@ -54,5 +56,14 @@ export async function initDatabase() {
   } catch (error) {
     console.error('Database initialization error:', error);
     throw error;
+  }
+}
+
+export async function checkDatabaseConnection(): Promise<string> {
+  try {
+    await initDatabase();
+    return 'Database connection successful';
+  } catch (error) {
+    return 'Database connection failed';
   }
 }
