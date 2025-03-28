@@ -47,8 +47,7 @@ export async function initDatabase() {
         check_in DATETIME,
         check_out DATETIME,
         date DATE NOT NULL,
-        FOREIGN KEY (employee_id) REFERENCES employees(id),
-        UNIQUE KEY unique_attendance (employee_id, date)
+        FOREIGN KEY (employee_id) REFERENCES employees(id)
       )
     `);
 

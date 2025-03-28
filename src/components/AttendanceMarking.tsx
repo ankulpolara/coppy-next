@@ -29,12 +29,24 @@ const AttendanceMarking: React.FC = () => {
         const attendanceData = await attendanceResponse.json();
         
         if (attendanceResponse.ok && attendanceData.attendanceRecords.length > 0) {
-          const todayRecord = attendanceData.attendanceRecords[0];
-          setAttendanceStatus({
-            checkedIn: !!todayRecord.check_in,
-            checkedOut: !!todayRecord.check_out
-          });
-          setIsCheckingIn(!todayRecord.check_in || (todayRecord.check_in && todayRecord.check_out));
+          // Find any record that has check_in but no check_out
+          const incompleteRecord = attendanceData.attendanceRecords.find(record => record.check_in && !record.check_out);
+          
+          if (incompleteRecord) {
+            // If there's an incomplete record, force check-out mode
+            setAttendanceStatus({
+              checkedIn: true,
+              checkedOut: false
+            });
+            setIsCheckingIn(false);
+          } else {
+            // If all records are complete, allow check-in
+            setAttendanceStatus({
+              checkedIn: false,
+              checkedOut: false
+            });
+            setIsCheckingIn(true);
+          }
         } else {
           setAttendanceStatus({ checkedIn: false, checkedOut: false });
           setIsCheckingIn(true);

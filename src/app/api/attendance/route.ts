@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
     const employeeId = searchParams.get('employeeId');
     
     let sql = `
@@ -18,22 +19,20 @@ export async function GET(request: NextRequest) {
     const params = [];
     
     // Add filters if provided
-    if (date || employeeId) {
-      sql += ' WHERE';
-      
-      if (date) {
-        sql += ' a.date = ?';
-        params.push(date);
-      }
-      
-      if (date && employeeId) {
-        sql += ' AND';
-      }
-      
-      if (employeeId) {
-        sql += ' a.employee_id = ?';
-        params.push(employeeId);
-      }
+    const conditions = [];
+    
+    if (start && end) {
+      conditions.push('a.date BETWEEN ? AND ?');
+      params.push(start, end);
+    }
+    
+    if (employeeId) {
+      conditions.push('a.employee_id = ?');
+      params.push(employeeId);
+    }
+    
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     
     sql += ' ORDER BY a.date DESC, e.name ASC';
@@ -50,8 +49,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { employeeId, action, timestamp } = await request.json();
-    const parsedTimestamp = moment.tz(timestamp, 'Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
-    console.log('Request body:', parsedTimestamp);
+    const parsedTimestamp = moment.tz(timestamp, '+05:30').format('YYYY-MM-DD HH:mm:ss');
+    // console.log('Request body................................:', parsedTimestamp ,timestamp);
     
     // Validate required fields
     if (!employeeId || !action || !timestamp) {
@@ -72,15 +71,24 @@ export async function POST(request: NextRequest) {
     if (action === 'check-in') {
       // Check if already checked in today
       const existingRecord = await query(
-        'SELECT id, check_in FROM attendance WHERE employee_id = ? AND date = ?',
+        'SELECT id, check_in, check_out FROM attendance WHERE employee_id = ? AND date = ? ORDER BY id DESC LIMIT 1',
         [employeeId, currentDate]
       );
       
       if ((existingRecord as any[]).length > 0) {
-        // If already checked in, return the existing record
-        if ((existingRecord as any[])[0].check_in) {
+        // If last record has both check-in and check-out, create a new record
+        if ((existingRecord as any[])[0].check_in && (existingRecord as any[])[0].check_out) {
+          await query(
+            'INSERT INTO attendance (employee_id, check_in, date) VALUES (?, ?, ?)',
+            [employeeId, currentTime, currentDate]
+          );
+          return NextResponse.json({ message: 'New check-in recorded successfully' }, { status: 201 });
+        }
+        
+        // If already checked in but not checked out, return the existing record
+        if ((existingRecord as any[])[0].check_in && !(existingRecord as any[])[0].check_out) {
           return NextResponse.json({
-            message: 'Employee already checked in today',
+            message: 'Employee already has an active check-in',
             attendance: (existingRecord as any[])[0]
           }, { status: 200 });
         }
@@ -102,7 +110,7 @@ export async function POST(request: NextRequest) {
     } else if (action === 'check-out') {
       // Check if already checked in today
       const existingRecord = await query(
-        'SELECT id, check_in, check_out FROM attendance WHERE employee_id = ? AND date = ?',
+        'SELECT id, check_in, check_out FROM attendance WHERE employee_id = ? AND date = ? ORDER BY id DESC LIMIT 1',
         [employeeId, currentDate]
       );
       
